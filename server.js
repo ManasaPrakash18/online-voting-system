@@ -13,7 +13,7 @@ const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 
 const mainDbPath = path.resolve(__dirname, 'voting.db');
 const mainDb = new sqlite3.Database(mainDbPath, (err) => {
