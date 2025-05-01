@@ -4,7 +4,7 @@
   "description": "An online voting system with login, register, admin, and voting features",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
     "postinstall": "npm rebuild bcrypt sqlite3"
   },
   "dependencies": {
@@ -19,7 +19,7 @@
     "sqlite3": "^5.1.6"
   },
   "engines": {
-  "node": "14.x"
+    "node": "14.x"
+  }
 }
 
-}
