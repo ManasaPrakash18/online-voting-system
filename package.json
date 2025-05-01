@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
+    "postinstall": "npm rebuild bcrypt sqlite3"
   },
   "dependencies": {
     "bcrypt": "^5.1.0",
