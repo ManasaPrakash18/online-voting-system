@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voter Dashboard - Online Voting System</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h2>Voter Dashboard</h2>
+    <form id="voteForm" method="POST" action="/vote">
+      <label for="election">Select Election:</label>
+      <select id="election" name="election" required>
+        <option value="">--Select Election--</option>
+      </select>
+      <br/><br/>
+      <label for="candidate">Select Candidate:</label>
+      <select id="candidate" name="candidate" required>
+        <option value="">--Select Candidate--</option>
+      </select>
+      <br/><br/>
+      <button type="submit">Vote</button>
+  </form>
+  <p><a href="index.html">Logout</a></p>
+
+  <h3>Election Results</h3>
+  <table id="resultsTable" border="1" style="width: 100%; max-width: 600px; margin-top: 20px;">
+    <thead>
+      <tr>
+        <th>Candidate</th>
+        <th>Votes</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+<script>
+  const electionSelect = document.getElementById('election');
+  const candidateSelect = document.getElementById('candidate');
+  const form = document.getElementById('voteForm');
+  const resultsTableBody = document.querySelector('#resultsTable tbody');
+
+  // Fetch elections and populate election dropdown
+  async function fetchElections() {
+    try {
+      const response = await fetch('/elections', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch elections');
+      const elections = await response.json();
+      elections.forEach(election => {
+        const option = document.createElement('option');
+        option.value = election.id;
+        option.textContent = election.name;
+        electionSelect.appendChild(option);
+      });
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  // Fetch candidates for selected election and populate candidate dropdown
+  async function fetchCandidates(electionId) {
+    candidateSelect.innerHTML = '<option value="">--Select Candidate--</option>';
+    if (!electionId) {
+      clearResults();
+      return;
+    }
+    try {
+      const response = await fetch(`/candidates?election_id=${electionId}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch candidates');
+      const candidates = await response.json();
+      candidates.forEach(candidate => {
+        const option = document.createElement('option');
+        option.value = candidate.id;
+        option.textContent = candidate.name;
+        candidateSelect.appendChild(option);
+      });
+      fetchResults(electionId);
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  // Fetch election results for selected election
+  async function fetchResults(electionId) {
+    resultsTableBody.innerHTML = '';
+    try {
+      const response = await fetch(`/results?election_id=${electionId}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch election results');
+      const data = await response.json();
+      if (data.results.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="2">No votes cast yet</td>';
+        resultsTableBody.appendChild(tr);
+        return;
+      }
+      data.results.forEach(result => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${result.candidate_name}</td>
+          <td>${result.vote_count}</td>
+        `;
+        resultsTableBody.appendChild(tr);
+      });
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  function clearResults() {
+    resultsTableBody.innerHTML = '';
+  }
+
+  electionSelect.addEventListener('change', () => {
+    fetchCandidates(electionSelect.value);
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const data = {
+      candidate_id: formData.get('candidate')
+    };
+    try {
+      const response = await fetch('/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      });
+      if (response.ok) {
+        alert('Vote cast successfully');
+        form.reset();
+        candidateSelect.innerHTML = '<option value="">--Select Candidate--</option>';
+        clearResults();
+      } else {
+        const text = await response.text();
+        alert('Error: ' + text);
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  });
+
+  // Initialize elections on page load
+  fetchElections();
+</script>
+</body>
+</html>

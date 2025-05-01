@@ -1,0 +1,20 @@
+{
+  "name": "online-voting-system",
+  "version": "1.0.0",
+  "description": "An online voting system with login, register, admin, and voting features",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.0",
+    "body-parser": "^1.20.2",
+    "connect-sqlite3": "^0.9.0",
+    "dotenv": "^16.5.0",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "googleapis": "^148.0.0",
+    "nodemailer": "^6.10.1",
+    "sqlite3": "^5.1.6"
+  }
+}

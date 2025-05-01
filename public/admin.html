@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Panel - Online Voting System</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+    }
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      background-color: #007bff;
+      padding: 10px 0;
+      gap: 20px;
+      z-index: 1000;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    nav button {
+      background: none;
+      border: none;
+      color: white;
+      padding: 10px 30px;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 4px;
+      transition: background-color 0.3s ease;
+      font-weight: 600;
+    }
+    nav button.active,
+    nav button:hover {
+      background-color: #0056b3;
+    }
+    #tableHeader {
+      position: fixed;
+      top: 50px; /* just below nav bar */
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ffffff;
+      padding: 12px 30px;
+      font-weight: bold;
+      font-size: 20px;
+      border-bottom: 2px solid #ddd;
+      z-index: 999;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      max-width: 900px;
+      width: 100%;
+      text-align: center;
+      border-radius: 0 0 8px 8px;
+    }
+    main {
+      padding: 110px 20px 40px 20px; /* top padding to avoid nav and header overlap */
+      max-width: 900px;
+      margin: 0 auto;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    section {
+      margin-top: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      table-layout: fixed;
+      word-wrap: break-word;
+      font-size: 15px;
+    }
+    table th, table td {
+      border: 1px solid #ddd;
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: middle;
+    }
+    table th {
+      background-color: #f2f2f2;
+      font-weight: 700;
+    }
+    button.action-btn {
+      margin-right: 5px;
+      padding: 6px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 4px;
+      border: none;
+      font-weight: 600;
+    }
+    button.delete-btn {
+      background-color: #dc3545;
+      color: white;
+    }
+    button.edit-btn {
+      background-color: #28a745;
+      color: white;
+    }
+    #addVoterBtn, #addCandidateBtn {
+      margin-bottom: 15px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      font-weight: 700;
+    }
+    #addVoterBtn:hover, #addCandidateBtn:hover {
+      background-color: #0056b3;
+    }
+    #formContainer, #formContainerCandidate {
+      margin-top: 15px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background-color: #fefefe;
+      box-shadow: 0 0 8px rgba(0,0,0,0.05);
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+      display: none;
+    }
+    #formContainer h3, #formContainerCandidate h3 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+    }
+    #formContainer form label, #formContainerCandidate form label {
+      display: block;
+      margin-bottom: 12px;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    #formContainer form input[type="text"],
+    #formContainer form input[type="email"],
+    #formContainer form input[type="number"],
+    #formContainerCandidate form input[type="text"],
+    #formContainerCandidate form input[type="email"],
+    #formContainerCandidate form input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 15px;
+      transition: border-color 0.3s ease;
+    }
+    #formContainer form input[type="text"]:focus,
+    #formContainer form input[type="email"]:focus,
+    #formContainer form input[type="number"]:focus,
+    #formContainerCandidate form input[type="text"]:focus,
+    #formContainerCandidate form input[type="email"]:focus,
+    #formContainerCandidate form input[type="number"]:focus {
+      border-color: #007bff;
+      outline: none;
+    }
+    #formContainer form input[type="checkbox"],
+    #formContainerCandidate form input[type="checkbox"] {
+      transform: scale(1.3);
+      margin-left: 6px;
+      vertical-align: middle;
+      cursor: pointer;
+    }
+    #formContainer form button,
+    #formContainerCandidate form button {
+      margin-top: 20px;
+      width: 48%;
+      padding: 12px 0;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 6px;
+      border: none;
+      font-weight: 700;
+      transition: background-color 0.3s ease;
+    }
+    #formContainer form button[type="submit"],
+    #formContainerCandidate form button[type="submit"] {
+      background-color: #28a745;
+      color: white;
+      margin-right: 4%;
+    }
+    #formContainer form button[type="submit"]:hover,
+    #formContainerCandidate form button[type="submit"]:hover {
+      background-color: #218838;
+    }
+    #formContainer form button[type="button"],
+    #formContainerCandidate form button[type="button"] {
+      background-color: #dc3545;
+      color: white;
+    }
+    #formContainer form button[type="button"]:hover,
+    #formContainerCandidate form button[type="button"]:hover {
+      background-color: #c82333;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <button id="tab-vote-summary" class="active">Vote Summary</button>
+    <button id="tab-voters-list">Voters List</button>
+    <button id="tab-candidate-list">Candidate List</button>
+    <button id="tab-election-list">Elections</button>
+    <button id="tab-pending-voters">Pending Voters</button>
+  </nav>
+  <div id="tableHeader">Vote Summary</div>
+  <main>
+    <section id="vote-summary" class="active">
+      <table id="voteSummaryTable">
+        <thead>
+          <tr>
+            <th>Candidate</th>
+            <th>Number of Votes</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section id="voters-list">
+      <h3>Voters List</h3>
+      <button id="addVoterBtn">Add Voter</button>
+      <table id="votersTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Has Voted</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="formContainer"></div>
+    </section>
+
+    <section id="candidate-list">
+      <h3>Candidate List</h3>
+      <button id="addCandidateBtn">Add Candidate</button>
+      <table id="candidatesTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Election ID</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="formContainerCandidate"></div>
+    </section>
+
+    <section id="election-list">
+      <h3>Election List</h3>
+      <button id="addElectionBtn">Add Election</button>
+      <table id="electionsTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="formContainerElection"></div>
+    </section>
+
+    <section id="pending-voters" style="display:none;">
+      <h3>Pending Voter Requests</h3>
+      <table id="pendingVotersTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const tabs = ['vote-summary', 'voters-list', 'candidate-list', 'election-list', 'pending-voters'];
+    const tableHeader = document.getElementById('tableHeader');
+    const formContainer = document.getElementById('formContainer');
+    const formContainerCandidate = document.getElementById('formContainerCandidate');
+    const formContainerElection = document.getElementById('formContainerElection');
+
+    tabs.forEach(tab => {
+      document.getElementById('tab-' + tab).addEventListener('click', () => {
+        tabs.forEach(t => {
+          document.getElementById(t).classList.remove('active');
+          document.getElementById('tab-' + t).classList.remove('active');
+          document.getElementById(t).style.display = 'none';
+        });
+        document.getElementById(tab).classList.add('active');
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.getElementById(tab).style.display = 'block';
+        tableHeader.textContent = tab === 'vote-summary' ? 'Vote Summary' : tab === 'voters-list' ? 'Voters List' : tab === 'candidate-list' ? 'Candidate List' : tab === 'election-list' ? 'Elections' : 'Pending Voters';
+        formContainer.innerHTML = '';
+        formContainer.style.display = 'none';
+        formContainerCandidate.innerHTML = '';
+        formContainerCandidate.style.display = 'none';
+        formContainerElection.innerHTML = '';
+        formContainerElection.style.display = 'none';
+    if (tab === 'vote-summary') fetchVoteSummary();
+    else if (tab === 'voters-list') fetchVoters();
+    else if (tab === 'candidate-list') fetchCandidates();
+    else if (tab === 'election-list') fetchElections();
+    else if (tab === 'pending-voters') fetchPendingVoters();
+  });
+    });
+
+
+    async function fetchVoteSummary() {
+      const response = await fetch('/admin/vote-summary');
+      if (response.ok) {
+        const data = await response.json();
+        const voteSummary = data.voteSummary || [];
+        const tbody = document.querySelector('#voteSummaryTable tbody');
+        tbody.innerHTML = '';
+        voteSummary.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${item.candidate}</td>
+            <td>${item.vote_count}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } else {
+        alert('Failed to load vote summary');
+      }
+    }
+
+    async function fetchVoters() {
+      const response = await fetch('/admin/voters');
+      if (response.ok) {
+        const voters = await response.json();
+        const tbody = document.querySelector('#votersTable tbody');
+        tbody.innerHTML = '';
+        voters.forEach(voter => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${voter.id}</td>
+            <td>${voter.name}</td>
+            <td>${voter.email}</td>
+            <td>${voter.has_voted ? 'Yes' : 'No'}</td>
+            <td>
+              <button class="action-btn edit-btn" onclick="openEditVoterForm(${voter.id}, '${voter.name}', '${voter.email}', ${voter.has_voted})">Edit</button>
+              <button class="action-btn delete-btn" onclick="deleteVoter(${voter.id})">Delete</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } else {
+        alert('Failed to load voters list');
+      }
+    }
+
+    async function fetchCandidates() {
+      const response = await fetch('/admin/candidates');
+      if (response.ok) {
+        const candidates = await response.json();
+        const tbody = document.querySelector('#candidatesTable tbody');
+        tbody.innerHTML = '';
+        candidates.forEach(candidate => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${candidate.id}</td>
+            <td>${candidate.name}</td>
+            <td>${candidate.election_id || ''}</td>
+            <td>
+              <button class="action-btn edit-btn" onclick="openEditCandidateForm(${candidate.id}, '${candidate.name}', ${candidate.election_id || null})">Edit</button>
+              <button class="action-btn delete-btn" onclick="deleteCandidate(${candidate.id})">Delete</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } else {
+        alert('Failed to load candidates list');
+      }
+    }
+
+
+    document.getElementById('addVoterBtn').addEventListener('click', () => {
+      openAddVoterForm();
+    });
+
+    document.getElementById('addCandidateBtn').addEventListener('click', () => {
+      openAddCandidateForm();
+    });
+
+    document.getElementById('addElectionBtn').addEventListener('click', () => {
+      openAddElectionForm();
+    });
+
+
+    function openAddVoterForm() {
+      formContainer.innerHTML = `
+        <h3>Add Voter</h3>
+        <form id="voterForm">
+          <label>Name: <input type="text" id="voterName" required></label>
+          <label>Email: <input type="email" id="voterEmail" required></label>
+          <label>Has Voted: <input type="checkbox" id="voterHasVoted"></label>
+          <button type="submit">Save</button>
+          <button type="button" onclick="closeVoterForm()">Cancel</button>
+        </form>
+      `;
+      formContainer.style.display = 'block';
+      document.getElementById('voterForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('voterName').value;
+        const email = document.getElementById('voterEmail').value;
+        const has_voted = document.getElementById('voterHasVoted').checked;
+        const response = await fetch('/admin/add-voter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email })
+        });
+        if (response.ok) {
+          alert('Voter added successfully');
+          closeVoterForm();
+          fetchVoters();
+        } else {
+          const text = await response.text();
+          alert('Error: ' + text);
+        }
+      };
+    }
+
+    function closeVoterForm() {
+      formContainer.style.display = 'none';
+      formContainer.innerHTML = '';
+    }
+
+    function openEditVoterForm(id, name, email, has_voted) {
+      formContainer.innerHTML = `
+        <h3>Edit Voter</h3>
+        <form id="voterForm">
+          <label>Name: <input type="text" id="voterName" value="${name}" required></label>
+          <label>Email: <input type="email" id="voterEmail" value="${email}" required></label>
+          <label>Has Voted: <input type="checkbox" id="voterHasVoted" ${has_voted ? 'checked' : ''}></label>
+          <button type="submit">Save</button>
+          <button type="button" onclick="closeVoterForm()">Cancel</button>
+        </form>
+      `;
+      formContainer.style.display = 'block';
+      document.getElementById('voterForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('voterName').value;
+        const email = document.getElementById('voterEmail').value;
+        const has_voted = document.getElementById('voterHasVoted').checked;
+        const response = await fetch('/admin/voters/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, has_voted })
+        });
+        if (response.ok) {
+          alert('Voter updated successfully');
+          closeVoterForm();
+          fetchVoters();
+        } else {
+          const text = await response.text();
+          alert('Error: ' + text);
+        }
+      };
+    }
+
+
+    function openAddCandidateForm() {
+      formContainerCandidate.innerHTML = `
+        <h3>Add Candidate</h3>
+        <form id="candidateForm">
+          <label>Name: <input type="text" id="candidateName" required></label>
+          <label>Election ID: <input type="number" id="candidateElectionId"></label>
+          <button type="submit">Save</button>
+          <button type="button" onclick="closeCandidateForm()">Cancel</button>
+        </form>
+      `;
+      formContainerCandidate.style.display = 'block';
+      document.getElementById('candidateForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('candidateName').value;
+        const election_id = document.getElementById('candidateElectionId').value || null;
+        const response = await fetch('/admin/candidates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, election_id })
+        });
+        if (response.ok) {
+          alert('Candidate added successfully');
+          closeCandidateForm();
+          fetchCandidates();
+        } else {
+          const text = await response.text();
+          alert('Error: ' + text);
+        }
+      };
+    }
+
+    function closeCandidateForm() {
+      formContainerCandidate.style.display = 'none';
+      formContainerCandidate.innerHTML = '';
+    }
+
+    function openEditCandidateForm(id, name, election_id) {
+      formContainerCandidate.innerHTML = `
+        <h3>Edit Candidate</h3>
+        <form id="candidateForm">
+          <label>Name: <input type="text" id="candidateName" value="${name}" required></label>
+          <label>Election ID: <input type="number" id="candidateElectionId" value="${election_id || ''}"></label>
+          <button type="submit">Save</button>
+          <button type="button" onclick="closeCandidateForm()">Cancel</button>
+        </form>
+      `;
+      formContainerCandidate.style.display = 'block';
+      document.getElementById('candidateForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('candidateName').value;
+        const election_id = document.getElementById('candidateElectionId').value || null;
+        const response = await fetch('/admin/candidates/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, election_id })
+        });
+        if (response.ok) {
+          alert('Candidate updated successfully');
+          closeCandidateForm();
+          fetchCandidates();
+        } else {
+          const text = await response.text();
+          alert('Error: ' + text);
+        }
+      };
+    }
+
+    async function deleteVoter(id) {
+      if (!confirm('Are you sure you want to delete this voter?')) return;
+      const response = await fetch('/admin/voters/' + id, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        alert('Voter deleted successfully');
+        fetchVoters();
+      } else {
+        const text = await response.text();
+        alert('Error: ' + text);
+      }
+    }
+
+    async function deleteCandidate(id) {
+      if (!confirm('Are you sure you want to delete this candidate?')) return;
+      const response = await fetch('/admin/candidates/' + id, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        alert('Candidate deleted successfully');
+        fetchCandidates();
+      } else {
+        const text = await response.text();
+        alert('Error: ' + text);
+      }
+    }
+
+    async function fetchElections() {
+      const response = await fetch('/admin/elections');
+      if (response.ok) {
+        const elections = await response.json();
+        const tbody = document.querySelector('#electionsTable tbody');
+        tbody.innerHTML = '';
+        elections.forEach(election => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${election.id}</td>
+            <td>${election.name}</td>
+            <td>${election.start_time}</td>
+            <td>${election.end_time}</td>
+            <td>
+              <button class="action-btn edit-btn" onclick="openEditElectionForm(${election.id}, '${election.name}', '${election.start_time}', '${election.end_time}')">Edit</button>
+              <button class="action-btn delete-btn" onclick="deleteElection(${election.id})">Delete</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } else {
+        alert('Failed to load elections list');
+      }
+    }
+
+    function openAddElectionForm() {
+      formContainerElection.innerHTML = `
+        <h3>Add Election</h3>
+        <form id="electionForm">
+          <label>Name: <input type="text" id="electionName" required></label>
+          <label>Start Time: <input type="datetime-local" id="electionStartTime" required></label>
+          <label>End Time: <input type="datetime-local" id="electionEndTime" required></label>
+          <button type="submit">Save</button>
+          <button type="button" onclick="closeElectionForm()">Cancel</button>
+        </form>
+      `;
+      formContainerElection.style.display = 'block';
+      document.getElementById('electionForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('electionName').value;
+        const start_time = document.getElementById('electionStartTime').value;
+        const end_time = document.getElementById('electionEndTime').value;
+        const response = await fetch('/admin/elections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, start_time, end_time })
+        });
+        if (response.ok) {
+          alert('Election added successfully');
+          closeElectionForm();
+          fetchElections();
+        } else {
+          const text = await response.text();
+          alert('Error: ' + text);
+        }
+      };
+    }
+
+    function closeElectionForm() {
+      formContainerElection.style.display = 'none';
+      formContainerElection.innerHTML = '';
+    }
+
+    function openEditElectionForm(id, title, description, start_date, end_date) {
+      formContainerElection.innerHTML = `
+        <h3>Edit Election</h3>
+        <form id="electionForm">
+          <label>Title: <input type="text" id="electionTitle" value="${title}" required></label>
+          <label>Description: <input type="text" id="electionDescription" value="${description}"></label>
+          <label>Start Date: <input type="date" id="electionStartDate" value="${start_date}" required></label>
+          <label>End Date: <input type="date" id="electionEndDate" value="${end_date}" required></label>
+          <button type="submit">Save</button>
+          <button type="button" onclick="closeElectionForm()">Cancel</button>
+        </form>
+      `;
+      formContainerElection.style.display = 'block';
+      document.getElementById('electionForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('electionTitle').value;
+        const description = document.getElementById('electionDescription').value;
+        const start_date = document.getElementById('electionStartDate').value;
+        const end_date = document.getElementById('electionEndDate').value;
+        const response = await fetch('/admin/elections/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description, start_date, end_date })
+        });
+        if (response.ok) {
+          alert('Election updated successfully');
+          closeElectionForm();
+          fetchElections();
+        } else {
+          const text = await response.text();
+          alert('Error: ' + text);
+        }
+      };
+    }
+
+    async function deleteElection(id) {
+      if (!confirm('Are you sure you want to delete this election?')) return;
+      const response = await fetch('/admin/elections/' + id, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        alert('Election deleted successfully');
+        fetchElections();
+      } else {
+        const text = await response.text();
+        alert('Error: ' + text);
+      }
+    }
+
+  // Initialize with vote summary
+  fetchVoteSummary();
+
+  async function fetchPendingVoters() {
+    const response = await fetch('/admin/pending-voters');
+    if (response.ok) {
+      const pendingVoters = await response.json();
+      const tbody = document.querySelector('#pendingVotersTable tbody');
+      tbody.innerHTML = '';
+      pendingVoters.forEach(voter => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${voter.id}</td>
+          <td>${voter.first_name}</td>
+          <td>${voter.last_name}</td>
+          <td>${voter.username}</td>
+          <td>${voter.email}</td>
+          <td>
+            <button class="action-btn edit-btn" onclick="approveVoter(${voter.id})">Approve</button>
+            <button class="action-btn delete-btn" onclick="rejectVoter(${voter.id})">Reject</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } else {
+      alert('Failed to load pending voters');
+    }
+  }
+
+  async function approveVoter(id) {
+    const response = await fetch(`/admin/pending-voters/${id}/approve`, {
+      method: 'PUT'
+    });
+    if (response.ok) {
+      alert('Voter approved successfully');
+      fetchPendingVoters();
+    } else {
+      const text = await response.text();
+      alert('Error: ' + text);
+    }
+  }
+
+  async function rejectVoter(id) {
+    if (!confirm('Are you sure you want to reject this voter?')) return;
+    const response = await fetch(`/admin/pending-voters/${id}/reject`, {
+      method: 'PUT'
+    });
+    if (response.ok) {
+      alert('Voter rejected and deleted successfully');
+      fetchPendingVoters();
+    } else {
+      const text = await response.text();
+      alert('Error: ' + text);
+    }
+  }
+</script>
+</body>
+</html>
+</content>
+</edit_file>

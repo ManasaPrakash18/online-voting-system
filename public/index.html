@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login - Online Voting System</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h2>Login</h2>
+    <form id="loginForm">
+      <label for="role">Select Role:</label>
+      <select id="role" name="role" required>
+        <option value="voter" selected>Voter</option>
+        <option value="admin">Admin</option>
+        <option value="candidate">Candidate</option>
+      </select>
+      <br/><br/>
+      <input type="text" id="username" placeholder="Username" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+    <div id="errorMsg" class="error"></div>
+    <p>Don't have an account? <a href="register.html">Register here</a></p>
+  </div>
+  <script>
+    const form = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('errorMsg');
+    const roleSelect = document.getElementById('role');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = '';
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const role = roleSelect.value;
+
+      try {
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ username, password, role })
+        });
+        const result = await response.json();
+        if (result.success) {
+          if (result.isAdmin && result.token) {
+            // Redirect to admin access code page with token
+            window.location.href = '/admin-access-code.html?token=' + encodeURIComponent(result.token);
+          } else if (result.isAdmin) {
+            // Fallback if token missing
+            window.location.href = '/admin-access-code.html';
+          } else if (role === 'candidate') {
+            // Redirect candidate to candidate dashboard (to be implemented)
+            window.location.href = '/candidate-dashboard.html';
+          } else {
+            // Regular user dashboard
+            window.location.href = '/dashboard.html';
+          }
+        } else {
+          if (result.message === 'Admin login forbidden during ongoing election') {
+            alert('Ongoing election. Admin login is not allowed at this time.');
+          } else {
+            errorMsg.textContent = result.message || 'Login failed. Please try again.';
+          }
+        }
+      } catch (err) {
+        errorMsg.textContent = 'Error during login. Please try again.';
+      }
+    });
+  </script>
+</body>
+</html>

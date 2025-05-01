@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Access Code</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background-color: #f9f9f9;
+      text-align: center;
+    }
+    .container {
+      max-width: 400px;
+      margin: auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 0.5rem;
+      margin: 1rem 0;
+      font-size: 1rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .error {
+      color: red;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Enter Admin Access Code</h2>
+    <form id="adminCodeForm">
+      <input type="password" id="adminCode" placeholder="Admin Access Code" required />
+      <button type="submit">Submit</button>
+    </form>
+    <div class="error" id="errorMsg"></div>
+    <p><a href="/login.html">Back to Login</a></p>
+  </div>
+  <script>
+    // Extract token from URL query parameter
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    const token = getQueryParam('token');
+    if (!token) {
+      document.getElementById('errorMsg').textContent = 'Missing authentication token. Please login again.';
+    }
+
+    const form = document.getElementById('adminCodeForm');
+    const errorMsg = document.getElementById('errorMsg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = '';
+      const code = document.getElementById('adminCode').value;
+
+      if (!token) {
+        errorMsg.textContent = 'Missing authentication token. Please login again.';
+        return;
+      }
+
+      try {
+        const response = await fetch('/verify-admin-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ code, token })
+        });
+        const result = await response.json();
+        if (result.success) {
+          window.location.href = '/admin/dashboard';
+        } else {
+          errorMsg.textContent = result.message || 'Invalid admin access code. Please try again.';
+        }
+      } catch (err) {
+        errorMsg.textContent = 'Error verifying code. Please try again.';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Registration Successful</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 2rem;
+      background-color: #f0f8ff;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2e8b57;
+    }
+    .code-box {
+      margin-top: 1rem;
+      padding: 1rem;
+      background-color: #e0f7fa;
+      border: 1px solid #00796b;
+      border-radius: 4px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #004d40;
+      user-select: all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Congratulations!!!</h1>
+    <p>Now you can host your own elections.</p>
+    <p>Your Admin Access Code is:</p>
+    <div class="code-box" id="adminAccessCode">Loading...</div>
+  </div>
+  <p><a href="index.html">Back to Login</a></p>
+  <script>
+    // Get admin access code from query parameter and display it
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code') || 'N/A';
+    document.getElementById('adminAccessCode').textContent = code;
+  </script>
+</body>
+</html>
