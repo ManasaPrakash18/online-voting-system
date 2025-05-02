@@ -237,14 +237,22 @@ function getUserDb(req, callback) {
     // Non-admin user, use mainDb
     return callback(null, mainDb);
   }
-  // Admin user: get admin DB path from mainDb
-  mainDb.get('SELECT db_path FROM admin_databases WHERE username = (SELECT username FROM users WHERE id = ?)', [req.session.userId], (err, row) => {
-    if (err || !row) {
-      // Fallback to mainDb on error or no row
+  // Admin user: get username from users table first
+  mainDb.get('SELECT username FROM users WHERE id = ?', [req.session.userId], (err, userRow) => {
+    if (err || !userRow) {
+      console.error('Error fetching username for admin user:', err);
       return callback(null, mainDb);
     }
-    const adminDb = new sqlite3.Database(row.db_path);
-    callback(null, adminDb);
+    const username = userRow.username;
+    // Then get admin DB path from admin_databases table
+    mainDb.get('SELECT db_path FROM admin_databases WHERE username = ?', [username], (err, adminRow) => {
+      if (err || !adminRow) {
+        console.error('Error fetching admin database for username:', username, err);
+        return callback(null, mainDb);
+      }
+      const adminDb = new sqlite3.Database(adminRow.db_path);
+      callback(null, adminDb);
+    });
   });
 }
 
@@ -723,9 +731,10 @@ app.post('/register', async (req, res) => {
   // Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Insert user into users table with is_approved=0 (pending approval)
-  const insertUserStmt = mainDb.prepare('INSERT INTO users (first_name, last_name, username, password, email, is_admin, is_approved) VALUES (?, ?, ?, ?, ?, ?, 0)');
-  insertUserStmt.run(first_name, last_name, username, hashedPassword, email, isAdmin, function (err) {
+  // Insert user into users table with is_approved=1 for admin, 0 for others (pending approval)
+  const isApproved = isAdmin ? 1 : 0;
+  const insertUserStmt = mainDb.prepare('INSERT INTO users (first_name, last_name, username, password, email, is_admin, is_approved) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  insertUserStmt.run(first_name, last_name, username, hashedPassword, email, isAdmin, isApproved, function (err) {
     if (err) {
       if (err.message.includes('UNIQUE constraint failed')) {
         return res.status(400).send('Username or email already exists');
@@ -735,7 +744,57 @@ app.post('/register', async (req, res) => {
 
     const userId = this.lastID;
 
-    if (isCandidate) {
+    if (isAdmin) {
+      // Generate admin access code
+      const adminAccessCode = generateAdminAccessCode();
+
+      // Create admin database file path
+      const adminDbFilePath = path.resolve(__dirname, 'admin_dbs', `${username}_admin.db`);
+
+      // Ensure admin_dbs directory exists
+      const adminDbsDir = path.resolve(__dirname, 'admin_dbs');
+      if (!fs.existsSync(adminDbsDir)) {
+        fs.mkdirSync(adminDbsDir);
+        console.log('Created admin_dbs directory at', adminDbsDir);
+      }
+
+      // Insert into admin_databases table
+      const insertAdminDbStmt = mainDb.prepare('INSERT INTO admin_databases (username, db_path, admin_access_code) VALUES (?, ?, ?)');
+      insertAdminDbStmt.run(username, adminDbFilePath, adminAccessCode, (adminDbErr) => {
+        if (adminDbErr) {
+          return res.status(500).send('Database error inserting admin database info');
+        }
+        insertAdminDbStmt.finalize();
+
+        // Initialize admin database
+          initializeAdminDatabase(adminDbFilePath, (initErr) => {
+            if (initErr) {
+              return res.status(500).send('Error initializing admin database');
+            }
+            // Insert admin user into admin database users table
+            const adminDb = new sqlite3.Database(adminDbFilePath);
+            const insertAdminUserStmt = adminDb.prepare('INSERT INTO users (first_name, last_name, username, password, email, is_admin, is_approved) VALUES (?, ?, ?, ?, ?, ?, ?)');
+            insertAdminUserStmt.run(first_name, last_name, username, hashedPassword, email, 1, 1, function (insertErr) {
+              if (insertErr) {
+                console.error('Error inserting admin user into admin database:', insertErr);
+                return res.status(500).send('Error inserting admin user into admin database');
+              }
+              insertAdminUserStmt.finalize();
+              adminDb.close();
+              // Set session for admin user
+              req.session.userId = userId;
+              req.session.isAdmin = true;
+              req.session.save((err) => {
+                if (err) {
+                  console.error('Session save error:', err);
+                  return res.status(500).send('Session error');
+                }
+                res.redirect(`/admin-welcome.html?code=${adminAccessCode}`);
+              });
+            });
+          });
+      });
+    } else if (isCandidate) {
       // Insert candidate into candidates table with election_id
       const insertCandidateStmt = mainDb.prepare('INSERT INTO candidates (name, election_id) VALUES (?, ?)');
       insertCandidateStmt.run(first_name + ' ' + last_name, election_id || null, (candidateErr) => {
