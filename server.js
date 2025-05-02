@@ -383,9 +383,23 @@ app.get('/admin/elections', isAuthenticated, isAdmin, checkAdminRole, (req, res)
 
 app.post('/admin/elections', isAuthenticated, isAdmin, checkAdminRole, (req, res) => {
   const { name, start_time, end_time } = req.body;
+
+  // Basic validation
+  if (!name || !start_time || !end_time) {
+    return res.status(400).send('Name, start time, and end time are required');
+  }
+
+  // Validate date format (ISO 8601)
+  if (isNaN(Date.parse(start_time)) || isNaN(Date.parse(end_time))) {
+    return res.status(400).send('Invalid date format for start_time or end_time');
+  }
+
   const stmt = mainDb.prepare('INSERT INTO elections (name, start_time, end_time) VALUES (?, ?, ?)');
   stmt.run(name, start_time, end_time, function (err) {
-    if (err) return res.status(500).send('Database error');
+    if (err) {
+      console.error('Error inserting election:', err.message);
+      return res.status(500).send('Database error');
+    }
     res.status(201).send('Election added successfully');
   });
   stmt.finalize();
@@ -460,29 +474,60 @@ app.get('/admin/pending-voters', isAuthenticated, isAdmin, checkAdminRole, (req,
 app.put('/admin/pending-voters/:id/approve', isAuthenticated, isAdmin, checkAdminRole, (req, res) => {
   const userId = req.params.id;
 
-  // First, get the user data from users table
-  mainDb.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
-    if (err) return res.status(500).send('Database error');
-    if (!user) return res.status(404).send('User not found');
-
-    // Insert user data into voters table
-    const insertStmt = mainDb.prepare('INSERT INTO voters (name, email) VALUES (?, ?)');
-    insertStmt.run(user.first_name + ' ' + user.last_name, user.email, function (insertErr) {
-      if (insertErr) {
-        insertStmt.finalize();
-        return res.status(500).send('Database error inserting voter');
+  mainDb.serialize(() => {
+    mainDb.run('BEGIN TRANSACTION', (beginErr) => {
+      if (beginErr) {
+        console.error('Error starting transaction:', beginErr.message);
+        return res.status(500).send('Database error starting transaction');
       }
 
-      insertStmt.finalize();
+      // Get user data
+      mainDb.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+        if (err) {
+          mainDb.run('ROLLBACK');
+          console.error('Error fetching user:', err.message);
+          return res.status(500).send('Database error fetching user');
+        }
+        if (!user) {
+          mainDb.run('ROLLBACK');
+          return res.status(404).send('User not found');
+        }
 
-      // Update users table to set is_approved = 1
-      const updateStmt = mainDb.prepare('UPDATE users SET is_approved = 1 WHERE id = ?');
-      updateStmt.run(userId, function (updateErr) {
-        if (updateErr) return res.status(500).send('Database error updating user approval');
-        if (this.changes === 0) return res.status(404).send('User not found');
-        res.send('User approved and added to voters successfully');
+        // Insert user data into voters table
+        const insertStmt = mainDb.prepare('INSERT INTO voters (name, email) VALUES (?, ?)');
+        insertStmt.run(user.first_name + ' ' + user.last_name, user.email, function (insertErr) {
+          if (insertErr) {
+            insertStmt.finalize();
+            mainDb.run('ROLLBACK');
+            console.error('Error inserting voter:', insertErr.message);
+            return res.status(500).send('Database error inserting voter');
+          }
+          insertStmt.finalize();
+
+          // Update users table to set is_approved = 1
+          const updateStmt = mainDb.prepare('UPDATE users SET is_approved = 1 WHERE id = ?');
+          updateStmt.run(userId, function (updateErr) {
+            if (updateErr) {
+              mainDb.run('ROLLBACK');
+              console.error('Error updating user approval:', updateErr.message);
+              return res.status(500).send('Database error updating user approval');
+            }
+            if (this.changes === 0) {
+              mainDb.run('ROLLBACK');
+              return res.status(404).send('User not found');
+            }
+
+            mainDb.run('COMMIT', (commitErr) => {
+              if (commitErr) {
+                console.error('Error committing transaction:', commitErr.message);
+                return res.status(500).send('Database error committing transaction');
+              }
+              res.send('User approved and added to voters successfully');
+            });
+          });
+          updateStmt.finalize();
+        });
       });
-      updateStmt.finalize();
     });
   });
 });
